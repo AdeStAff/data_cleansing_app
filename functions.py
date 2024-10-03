@@ -12,7 +12,9 @@ pd.set_option("future.no_silent_downcasting", True)
 
 api = HfApi()
 
-def upload_file_to_hf(df,final_name,repo_id='laurentperrierus/lp_nielsen_data_cleansing'):
+
+
+def upload_file_to_hf(df,final_name,repo_id=os.get('FINAL_REPO_ID')):
 
     HF_TOKEN = os.getenv('HF_TOKEN')
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".csv", prefix="Unidentified_UPCS_name_changes_proposition_")
@@ -26,68 +28,6 @@ def upload_file_to_hf(df,final_name,repo_id='laurentperrierus/lp_nielsen_data_cl
         repo_type="space",
         token=HF_TOKEN
     )
-
-def update_the_truth(truth, 
-                     add_to_truth_df_state, 
-                     upcs_to_modify_df_state, 
-                     upcs_to_delete_df_state):
-    
-    # Delete UPCs that must be removed from truth
-    if upcs_to_delete_df_state is not None:
-        lst_of_upcs_to_delete = upcs_to_delete_df_state['UPC'].unique().tolist()
-        truth_minus_deleted = truth[~truth['wine_upc'].isin(lst_of_upcs_to_delete)]
-    else:
-        truth_minus_deleted = truth.copy()
-
-    # Modify the UPCs to modify
-    if upcs_to_modify_df_state is not None:
-        lst_of_upcs_to_modify = upcs_to_modify_df_state['UPC'].unique().tolist()
-        truth_modified = truth_minus_deleted [~truth_minus_deleted ['wine_upc'].isin(lst_of_upcs_to_modify)]
-        upcs_to_modify_df = upcs_to_modify_df_state.rename(columns={'UPC':'wine_upc',
-                                                    'Item Names':'item_desc_truth',
-                                                     'Brand Families':'brand_family_truth',
-                                                     'Sizes':'size_truth',
-                                                     'Colors':'color_truth',
-                                                     'Prestige':'prestige_truth',
-                                                     'ARP':'arp_truth',
-                                                     'ARP LY':'arp_ly_truth',
-                                                     'Units LY':'Units YA',
-                                                     '%ACV Reach Where Dist NON ALCOHOLIC':'Max Item %ACV Reach Where Dist WINE',
-                                                     '%ACV Reach Where Dist YA NON ALCOHOLIC': 'Max Item %ACV Reach YA Where Dist WINE',
-                                                     '$ Per Point of ACV':'$ Per Point of Max Item ACV'
-                                                   })
-        upcs_to_modify_df_int = upcs_to_modify_df.drop(columns=['# Stores Last Period', '# Stores Selling Last Period','$ per Store Selling Last Period', 'ACV Calc', 'GT'])
-        truth_modified_final = pd.concat([truth_modified, upcs_to_modify_df_int], ignore_index=True)
-    else:
-        truth_modified_final = truth_minus_deleted.copy()
-
-    # Add the newly identified UPCs to the truth
-    if add_to_truth_df_state is not None:
-        add_to_truth_df_state.columns = add_to_truth_df_state.columns.str.strip()
-        truth_modified_final.columns = truth_modified_final.columns.str.strip()
-        df_to_concat_int = add_to_truth_df_state.rename(columns={'UPC':'wine_upc',
-                                                        'Item Names':'item_desc_truth',
-                                                        'Brand Families':'brand_family_truth',
-                                                        'Sizes':'size_truth',
-                                                        'Colors':'color_truth',
-                                                        'Prestige':'prestige_truth',
-                                                        'ARP':'arp_truth',
-                                                        'ARP LY':'arp_ly_truth',
-                                                        'Units LY':'Units YA',
-                                                        '%ACV Reach Where Dist NON ALCOHOLIC':'Max Item %ACV Reach Where Dist WINE',
-                                                        '%ACV Reach Where Dist YA NON ALCOHOLIC': 'Max Item %ACV Reach YA Where Dist WINE',
-                                                        '$ Per Point of ACV':'$ Per Point of Max Item ACV'
-                                                    })
-        df_to_concat_final = df_to_concat_int.drop(columns=['# Stores Last Period', '# Stores Selling Last Period','$ per Store Selling Last Period', 'ACV Calc', 'GT'])
-        new_truth = pd.concat([truth_modified_final,df_to_concat_final],ignore_index=True)
-    else:
-        new_truth = truth_modified_final.copy()
-    new_truth_final = return_new_truth_in_right_format(new_truth)
-    now = datetime.now()
-    formatted_datetime = now.strftime("%m_%d_%Y_%H_%M_%S")
-    name_of_old_truth = str('truth_' + str(formatted_datetime))
-    upload_file_to_hf(truth,name_of_old_truth)
-    upload_file_to_hf(new_truth_final,'current_truth.csv')
 
 def change_red_to_white(row, colors='Colors'):
     
@@ -1563,10 +1503,63 @@ def check_upcs_have_diff_item_names(df,item_names_column,upc_column):
 
 def click_UPCs_to_add_to_truth_button_fn(truth, add_to_truth_df_state,upcs_to_modify_df_state,upcs_to_delete_df_state):
     
-    update_the_truth(truth, 
-                    add_to_truth_df_state, 
-                    upcs_to_modify_df_state, 
-                    upcs_to_delete_df_state)
+    # Delete UPCs that must be removed from truth
+    if upcs_to_delete_df_state is not None:
+        lst_of_upcs_to_delete = upcs_to_delete_df_state['UPC'].unique().tolist()
+        truth_minus_deleted = truth[~truth['wine_upc'].isin(lst_of_upcs_to_delete)]
+    else:
+        truth_minus_deleted = truth.copy()
+
+    # Modify the UPCs to modify
+    if upcs_to_modify_df_state is not None:
+        lst_of_upcs_to_modify = upcs_to_modify_df_state['UPC'].unique().tolist()
+        truth_modified = truth_minus_deleted [~truth_minus_deleted ['wine_upc'].isin(lst_of_upcs_to_modify)]
+        upcs_to_modify_df = upcs_to_modify_df_state.rename(columns={'UPC':'wine_upc',
+                                                    'Item Names':'item_desc_truth',
+                                                     'Brand Families':'brand_family_truth',
+                                                     'Sizes':'size_truth',
+                                                     'Colors':'color_truth',
+                                                     'Prestige':'prestige_truth',
+                                                     'ARP':'arp_truth',
+                                                     'ARP LY':'arp_ly_truth',
+                                                     'Units LY':'Units YA',
+                                                     '%ACV Reach Where Dist NON ALCOHOLIC':'Max Item %ACV Reach Where Dist WINE',
+                                                     '%ACV Reach Where Dist YA NON ALCOHOLIC': 'Max Item %ACV Reach YA Where Dist WINE',
+                                                     '$ Per Point of ACV':'$ Per Point of Max Item ACV'
+                                                   })
+        upcs_to_modify_df_int = upcs_to_modify_df.drop(columns=['# Stores Last Period', '# Stores Selling Last Period','$ per Store Selling Last Period', 'ACV Calc', 'GT'])
+        truth_modified_final = pd.concat([truth_modified, upcs_to_modify_df_int], ignore_index=True)
+    else:
+        truth_modified_final = truth_minus_deleted.copy()
+
+    # Add the newly identified UPCs to the truth
+    if add_to_truth_df_state is not None:
+        add_to_truth_df_state.columns = add_to_truth_df_state.columns.str.strip()
+        truth_modified_final.columns = truth_modified_final.columns.str.strip()
+        df_to_concat_int = add_to_truth_df_state.rename(columns={'UPC':'wine_upc',
+                                                        'Item Names':'item_desc_truth',
+                                                        'Brand Families':'brand_family_truth',
+                                                        'Sizes':'size_truth',
+                                                        'Colors':'color_truth',
+                                                        'Prestige':'prestige_truth',
+                                                        'ARP':'arp_truth',
+                                                        'ARP LY':'arp_ly_truth',
+                                                        'Units LY':'Units YA',
+                                                        '%ACV Reach Where Dist NON ALCOHOLIC':'Max Item %ACV Reach Where Dist WINE',
+                                                        '%ACV Reach Where Dist YA NON ALCOHOLIC': 'Max Item %ACV Reach YA Where Dist WINE',
+                                                        '$ Per Point of ACV':'$ Per Point of Max Item ACV'
+                                                    })
+        df_to_concat_final = df_to_concat_int.drop(columns=['# Stores Last Period', '# Stores Selling Last Period','$ per Store Selling Last Period', 'ACV Calc', 'GT'])
+        new_truth = pd.concat([truth_modified_final,df_to_concat_final],ignore_index=True)
+    else:
+        new_truth = truth_modified_final.copy()
+    new_truth_final = return_new_truth_in_right_format(new_truth)
+    now = datetime.now()
+    formatted_datetime = now.strftime("%m_%d_%Y_%H_%M_%S")
+    name_of_old_truth = str('truth_' + str(formatted_datetime))
+    upload_file_to_hf(truth,name_of_old_truth)
+    upload_file_to_hf(new_truth_final,'current_truth.csv')
+
 
 
 def modify_the_truth_button_fn():

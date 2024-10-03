@@ -2,3 +2,6 @@ venv
 .DS_Store
 test.ipynb
 __pycache__
+initial_data.csv
+current_truth.csv
+.env
